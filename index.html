@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA Gemini 2.5</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #e9e9e9;
+        margin: 0;
+        padding: 0;
+    }
+
+    #topbar {
+        background: #222;
+        color: white;
+        padding: 15px;
+        font-size: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #devBtn {
+        background: #444;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    #app {
+        padding: 20px;
+        max-width: 700px;
+        margin: auto;
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        margin-top: 10px;
+    }
+
+    button {
+        margin-top: 10px;
+        width: 100%;
+        padding: 14px;
+        background: #4CAF50;
+        color: white;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    #chatBox {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        margin-top: 20px;
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        white-space: pre-wrap;
+    }
+
+    .msg {
+        background: #f1f1f1;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        position: relative;
+    }
+
+    .copiar {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-size: 12px;
+        color: blue;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    #devPanel {
+        display: none;
+        background: white;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 12px;
+        border: 1px solid #bbb;
+    }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+    IA Gemini 2.5
+    <div id="devBtn" onclick="abrirDev()">DEV</div>
+</div>
+
+<div id="app">
+
+    <input id="apiKey" placeholder="Cole sua API KEY grátis aqui">
+    <textarea id="promptBase" placeholder="Prompt-base carregado..." disabled></textarea>
+
+    <textarea id="entrada" placeholder="DIGITAR sua mensagem aqui..."></textarea>
+    <button onclick="enviar()">ENVIAR</button>
+
+    <div id="chatBox"></div>
+
+    <div id="devPanel">
+        <h3>NOVO PROMPT</h3>
+        <textarea id="novoPrompt" placeholder="Digite o novo prompt-base"></textarea>
+        <button onclick="salvarPrompt()">VOLTAR</button>
+    </div>
+
+</div>
+
+<script>
+let promptBase = "Você é uma IA inteligente pronta para ajudar.";
+
+// Abrir menu DEV
+function abrirDev() {
+    const senha = prompt("DIGITE A SENHA:");
+    if (senha === "404") {
+        document.getElementById("devPanel").style.display = "block";
+    } else {
+        alert("Senha incorreta.");
+    }
+}
+
+// Salvar novo prompt-base
+function salvarPrompt() {
+    const novo = document.getElementById("novoPrompt").value.trim();
+    if (novo.length > 3) {
+        promptBase = novo;
+        document.getElementById("promptBase").value = novo;
+        alert("Prompt atualizado!");
+    }
+    document.getElementById("devPanel").style.display = "none";
+}
+
+// Enviar mensagem
+async function enviar() {
+    const key = document.getElementById("apiKey").value.trim();
+    const msg = document.getElementById("entrada").value.trim();
+
+    if (!key) return alert("Cole sua API KEY primeiro!");
+    if (!msg) return alert("Digite uma mensagem!");
+
+    adicionarMsg("Você: " + msg);
+
+    document.getElementById("entrada").value = "";
+
+    const fullPrompt = promptBase + "\n\nPergunta do usuário: " + msg;
+
+    try {
+        const res = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + key,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        { parts: [{ text: fullPrompt }] }
+                    ]
+                })
+            }
+        );
+
+        const data = await res.json();
+
+        if (data.error) {
+            adicionarMsg("Erro: " + data.error.message);
+            return;
+        }
+
+        const resposta = data.candidates[0].content.parts[0].text;
+
+        adicionarMsg(resposta, true);
+
+    } catch (e) {
+        adicionarMsg("Erro ao conectar: " + e);
+    }
+}
+
+// Adicionar mensagem no chat
+function adicionarMsg(texto, copiar = false) {
+    const box = document.getElementById("chatBox");
+
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerText = texto;
+
+    if (copiar) {
+        const btn = document.createElement("div");
+        btn.className = "copiar";
+        btn.innerText = "COPIAR";
+        btn.onclick = () => navigator.clipboard.writeText(texto);
+        div.appendChild(btn);
+    }
+
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+</script>
+
+</body>
+  </html>
